@@ -5,6 +5,63 @@ Type some assembly instructions and immediatly see which registers were changed.
 
 Currently only supports i386 and x86_64 on OS X.
 
+Special instructions
+==
+This fork includes a very minor addition as well as different instructions for building on OS X Mojave, since it introduced a few monkey wrenches. Not only will this project build with XCode 10.x but you will need to go through some extra steps to be able to properly codesign the executable.
+
+* First get a hold of an older version of XCode, 9.4.1 exactly, which you can get from https://developer.apple.com/download/more/.
+
+* Once you've installed it, you'll need to switch your environment to use it and its own command line tools:
+
+```
+xcode-select -s /Applications/Xcode\ 9.4.1.app/Contents/Developer
+```
+
+* Next, install the command line tools:
+
+```
+xcode-select --install
+```
+
+* Install radare as documented here: https://github.com/radareorg/radare2
+
+* Run `make`. (This will take a while.)
+
+* See that you have a new executable in the project root, `asm_repl`.
+
+* If you try to run it, you'll see the following message after being challenged for the System password:
+
+```
+task_for_pid() failed!
+Either codesign asm_repl or run as root.
+Failed to read
+```
+
+* To get around this you'll need to create a new certificate; follow the directions [here](https://gcc.gnu.org/onlinedocs/gnat_ugn/Codesigning-the-Debugger.html,) on how to do that.
+
+* The original directions below will tell you to simply use the `codesign` utility next with the new certificate, but unfortunately that doesn't quite work on OS X Mojave. You'll need to also create an XML file that declares permissions that need to be explicitly listed and granted to the binary to get around the requirement to run as root. It should look like this:
+
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.debugger</key>
+    <true/>
+</dict>
+</plist>
+```
+
+You can read more about this oddity here: https://lapcatsoftware.com/articles/debugging-mojave.html.
+
+* Now you can codesign the binary with the following:
+
+```
+codesign -f -s  "task_for_pid" --entitlements asm_repl.xml ./asm_repl
+```
+
+* Finally, you should be able to run the executable without being bothered with passwords again except the first time.
+
 Screenshot
 ==
 [![Screenshot x86_64](http://i.imgur.com/Eb8Bz15.png)](http://i.imgur.com/Eb8Bz15.png)
